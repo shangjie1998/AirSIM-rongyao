@@ -235,3 +235,25 @@ git checkout fix/honor-startrecording-audit && git rebase main
 包括但不限于荣耀/华为系。判断方法：看 helper 的 `session_error` 是否带
 `error_stack` 且栈顶在 `android.media.AudioRecord.startRecording`，
 若同时 `getClass().getSimpleName()=="NullPointerException"`，即为本文描述的审计 NPE。
+
+## 10. 上游 v0.9.8.24 复验
+
+上游发布 `v0.9.8.24`（`c38bbf0`，versionCode 135）后，本分支按新 tag 重放补丁：
+
+- 上游只改了 `android-standalone/AndroidManifest.xml` 的 `versionCode` / `versionName` 两行，
+  `PhoneAudioBridge.java`、`AudioStartupFailure.java` 未被触碰，冲突仅限版本号；
+- 本分支版本为 `versionCode 136` / `versionName 0.9.8.24`，包名仍为 `…standalone.rongyao`；
+- 上游同期重排了云端音频缓冲与本地输出策略（`CloudPCMAudioQueue`、
+  `CloudPCMMediaPump`、`LocalCallAudioController`、`AudioWatchdogReport`），
+  与本修复没有代码交集，但需要在真机上复验一次。
+
+2026-11-09 HONOR AMG-AN00（Android 16 / SDK 36）实测：
+
+```text
+capture_audit_bypass   result=ok  bypass_source_id=5  capture_source_id=3  sdk=36
+vowlan_pcm_closed      uplink_bytes=393600  uplink_frames=1225  uplink_peak=18388
+                       downlink_bytes=393920  downlink_frames=1231  downlink_peak=26616
+pcm_health             pcm_failure=none  pcm_failure_count=0
+```
+
+双向峰值非零、约 39 万字节、无会话错误，绕过在新版本上仍然生效。

@@ -2,7 +2,7 @@
 
 > [!IMPORTANT]
 > **这是 [kai-wu-cortex/AirSIM](https://github.com/kai-wu-cortex/AirSIM) 的个人适配分支，不是上游官方仓库。**
-> 本分支基于 `v0.9.8.23`（`b845254`），修复了荣耀（HONOR）机型通话音频采集必然崩溃的问题；
+> 本分支基于上游 `v0.9.8.24`（`c38bbf0`），修复了荣耀（HONOR）机型通话音频采集必然崩溃的问题；
 > 包名与安装包均和上游区分，可与上游版本共存安装。
 > 已在 **HONOR AMG-AN00（MagicOS / Android 16，SDK 36）** 真机验证，其他 OEM 机型未验证。
 
@@ -24,17 +24,17 @@ AOSP `android16-release` 的 `AudioRecord.java` 中没有任何 `requireNonNull`
 
 ## 分支、安装包与已知限制
 
-- 分支：`fix/honor-startrecording-audit`，基线 tag `v0.9.8.23`
-- 安装包：`AirSIM-rongyao-0.9.8.23-v132.apk`，下载见 [Releases](https://github.com/shangjie1998/AirSIM-rongyao/releases/tag/v0.9.8.23-rongyao.132)
-- 包名 `com.airsim.phonecontrol.standalone.rongyao`，应用名「AirSIM 荣耀修改版」，versionCode 132
+- 分支：`fix/honor-startrecording-audit`，基线 tag `v0.9.8.24`（含上游加密短信与云端音频策略更新）
+- 安装包：`AirSIM-rongyao-0.9.8.24-v136.apk`，下载见 [Releases](https://github.com/shangjie1998/AirSIM-rongyao/releases/tag/v0.9.8.24-rongyao.136)
+- 包名 `com.airsim.phonecontrol.standalone.rongyao`，应用名「AirSIM 荣耀修改版」，versionCode 136 / versionName 0.9.8.24
 - 与上游 `com.airsim.phonecontrol.standalone` 可共存安装，但两者都把 PCM 端口写死为 `7580`，**不要同时运行**
 - iOS 端无需改动，继续使用上游 `0.9.8 (172)`
 - 已知限制：荣耀热点下 Bonjour 偶尔搜不到安卓端点，此时用「手动地址配对」填 `网关IP:端口`；配对端口默认随机，建议在安卓端设为固定值
 
 ## 与上游同步
 
-上游 `main` 仍停在 `v0.9.8.23`，`develop` 已有加密短信等更新但**未触碰本分支改动的文件**，rebase 理论零冲突。
-等上游发布 `v0.9.8.24` 及以上版本后，以新 tag 为基线重放本分支提交。
+本分支已随上游 `v0.9.8.24` 重放过一次：上游只改了 `android-standalone/AndroidManifest.xml` 的版本两行，`PhoneAudioBridge.java` 与 `AudioStartupFailure.java` 未被触碰，冲突仅限版本号。
+后续上游再发版时同样以新 tag 为基线重放，并保留本分支的 `rongyao` 包名与更大的 versionCode。
 
 ---
 

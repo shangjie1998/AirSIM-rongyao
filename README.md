@@ -1,4 +1,42 @@
-# AirSIM — Android 与 iPhone / Apple Watch 跨设备通话、短信和 VoWLAN
+# AirSIM — Android 与 iPhone / Apple Watch 跨设备通话、短信和 VoWLAN（荣耀适配分支）
+
+> [!IMPORTANT]
+> **这是 [kai-wu-cortex/AirSIM](https://github.com/kai-wu-cortex/AirSIM) 的个人适配分支，不是上游官方仓库。**
+> 本分支基于 `v0.9.8.23`（`b845254`），修复了荣耀（HONOR）机型通话音频采集必然崩溃的问题；
+> 包名与安装包均和上游区分，可与上游版本共存安装。
+> 已在 **HONOR AMG-AN00（MagicOS / Android 16，SDK 36）** 真机验证，其他 OEM 机型未验证。
+
+## 本分支做了什么
+
+**现象**：荣耀上通话信令完全正常，能拨通、能接通、能挂断，但 PCM 双向都是 0 字节——远端听不到本机声音，本机也听不到对端，最终远端等待超时挂断。
+
+**根因**：荣耀改写了系统 `framework.jar` 里的 `AudioRecord.startRecording()`，在方法开头插入了 HiLog 隐私审计：
+先读 `mRecordSource`，若不等于 `CAMCORDER`(5) 就调用 `ActivityThread.currentApplication()` 并 `Objects.requireNonNull`。
+AirSIM 的音频桥运行在 `app_process` 里（Shizuku UserService / root helper），没有 ActivityThread，`currentApplication()` 恒为 `null`，
+因此**除 `CAMCORDER` 以外的所有采集源都必然抛 NullPointerException**，采集永远起不来。
+AOSP `android16-release` 的 `AudioRecord.java` 中没有任何 `requireNonNull`，可确认这是 OEM 追加的逻辑。
+
+**修法**：仍按 `VOICE_DOWNLINK`(3) 构造 `AudioRecord`（构造参数会下到 native 影响 HAL 路由，不能替换），
+仅在 `startRecording()` 前后用反射把 Java 私有字段 `mRecordSource` 临时置为 5，`finally` 中复位；
+反射字段解析一次后缓存，失败时自动退回普通调用。真机复验结果：`capture_audit_bypass` 事件出现，双向各 66 万字节，`session_error=0`。
+
+完整根因分析与验证记录见 [docs/honor-startrecording-audit.md](docs/honor-startrecording-audit.md)。
+
+## 分支、安装包与已知限制
+
+- 分支：`fix/honor-startrecording-audit`，基线 tag `v0.9.8.23`
+- 安装包：`AirSIM-rongyao-0.9.8.23-v132.apk`，下载见 [Releases](https://github.com/shangjie1998/AirSIM-rongyao/releases/tag/v0.9.8.23-rongyao.132)
+- 包名 `com.airsim.phonecontrol.standalone.rongyao`，应用名「AirSIM 荣耀修改版」，versionCode 132
+- 与上游 `com.airsim.phonecontrol.standalone` 可共存安装，但两者都把 PCM 端口写死为 `7580`，**不要同时运行**
+- iOS 端无需改动，继续使用上游 `0.9.8 (172)`
+- 已知限制：荣耀热点下 Bonjour 偶尔搜不到安卓端点，此时用「手动地址配对」填 `网关IP:端口`；配对端口默认随机，建议在安卓端设为固定值
+
+## 与上游同步
+
+上游 `main` 仍停在 `v0.9.8.23`，`develop` 已有加密短信等更新但**未触碰本分支改动的文件**，rebase 理论零冲突。
+等上游发布 `v0.9.8.24` 及以上版本后，以新 tag 为基线重放本分支提交。
+
+---
 
 [Apps v0.9.8.24 · Android 135 / iOS 175](docs/releases/0.9.8.24.md)：云端音频缓冲、兼容端短信加密与来电通知改进。纯本地跨端协商及零 Relay 流量仍未完成端到端验收；请阅读发布限制。AVF Linux Agent 保持 v0.4.7。
 
